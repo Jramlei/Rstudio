@@ -1,0 +1,263 @@
+Lineal regression analysis and predictions with the CIS poll 2020
+
+library(haven)
+
+cis2019 <- read_sav("3248.sav")
+View(cis2019)
+
+cis2019$EHB<- cis2019$P39AR
+cis2019$ERC<- cis2019$P39AR
+
+
+cis2019$EHB
+cis2019$EHB[cis2019$EHB<12]<-0
+cis2019$EHB[cis2019$EHB==12]<-1
+cis2019$EHB[cis2019$EHB>12 & cis2019$EHB<77]<-0
+cis2019$EHB[cis2019$EHB==95]<-0
+cis2019$EHB[cis2019$EHB==96]<-0
+cis2019$EHB[cis2019$EHB>=77]<-NA
+
+cis2019$EHB<- factor(cis2019$EHB,
+                          levels = c(0,1),
+                          labels = c("Otros","EHB"))
+table(cis2019$EHB)
+
+cis2019$ERC
+cis2019$ERC[cis2019$ERC<8]<-0
+cis2019$ERC[cis2019$ERC==8]<-1
+cis2019$ERC[cis2019$ERC>8 & cis2019$ERC<77]<-0
+cis2019$ERC[cis2019$ERC==95]<-0
+cis2019$ERC[cis2019$ERC==96]<-0
+cis2019$ERC[cis2019$ERC>=77]<-NA
+
+cis2019$ERC<- factor(cis2019$ERC,
+                     levels = c(0,1),
+                     labels = c("Otros","ERC"))
+table(cis2019$ERC)
+
+
+cis2019$edad<- cis2019$P42
+summary(cis2019$edad)
+cis2019$edad[cis2019$edad==99]<-NA
+
+cis2019$sexo<- cis2019$P41
+summary(cis2019$sexo)
+cis2019$sexo[cis2019$sexo==1]<-1
+cis2019$sexo[cis2019$sexo==2]<-0
+cis2019$sexo<- factor(cis2019$sexo,
+                       levels = c(0,1),
+                       labels = c("Mujer","Hombre"))
+table(cis2019$sexo)
+
+cis2019$ideologia<- cis2019$P32
+cis2019$ideologia[cis2019$ideologia>10]<-NA
+table(cis2019$ideologia)
+
+cis2019$estudios<- cis2019$ESTUDIOS
+cis2019$estudios
+cis2019$estudios[cis2019$estudios==1]<-1
+cis2019$estudios[cis2019$estudios==2]<-2
+cis2019$estudios[cis2019$estudios==3]<-3
+cis2019$estudios[cis2019$estudios==4]<-3
+cis2019$estudios[cis2019$estudios==5]<-3
+cis2019$estudios[cis2019$estudios==6]<-4
+cis2019$estudios[cis2019$estudios>=7]<-NA
+
+cis2019$estudios<- factor(cis2019$estudios,
+                          levels = c(1,2,3,4),
+                          labels = c("Sin estudios","Primaria","Secundaria","Superiores"))
+table(cis2019$estudios)
+
+## Creamos un data frame con nuestras variables y en el mismo orden
+myvars <- c("EHB", "ERC", "edad", "sexo", "ideologia", "estudios")  
+data<-as.data.frame(cis2019[myvars])
+data<- na.omit(data)
+dim(data)
+summary(data)
+
+library(MASS)
+m.ehb <- glm(EHB ~ edad + sexo + ideologia + estudios, data = data, family = "binomial")
+summary(m.ehb)
+
+
+##Explicar las que son significativas y cuales no. Podemos rechazar las significativas, las del *,**,***.
+#No podríamos rechazar casí todas las variables a excepción de ideología, que tiene un z y p valor por debajo de -3.26 y 0.001
+## Poner las hipótesis, H0 la variable independiente no tiene relacción sobre la dependiente.
+##H1, la variable independiente si tiene relación sobre la dependiente 
+##Solo en la que es significativa podemos rechazar la hipotesis nula, z y o valor por encima de0.05 e inferior a 1.96
+
+confint(m.ehb)
+coef(m.ehb)
+
+#Edad: por cada año que aumenta la edad de una persona, el log de la probabilidad de haber votado a ehb (vs haber votado a ERC) disminuye en 0.003 ceteris paribus
+#Sexo: los hombres tienen un log de probabilidad de haber votado a ehb mayor (frente a las mujeres) de 0.22 ceteris paribus
+#Ideología:  Para cada punto que aumenta la ideología, el log de la probabilidad de haber votado a ehb (versus haber votado a ERC) disminuye en 0,66 ceteris paribus
+#EstudioPrimarios: Para las personas que tienen estudios primarios frente a las sin estudios, el log de probabilidad de haber votado a ehb es 13.73 puntos más.ceteris paribus
+#EstudiosSecundario: Para las personas que tienen estudios secundarios frente a las sin estudios, el log de probabilidad de haber votado a ehb es 14.87 puntos más.ceteris paribus
+#EstudiosSuperiores:Para las personas que tienen estudios superiores frente a las sin estudios, el log de probabilidad de haber votado a ehb es 15.36 puntos más.ceteris paribus
+
+exp(coef(m.ehb))
+
+#Los que tienen un efecto positivo, es decir mayor a 1.Para comparar entre valores por debajo de 1: dividmos 1/el valor de la variable
+#Las varibales sexo, y los estudios primario, secundario y superiores tienen un efecto positivo de haber votado a EHB.
+#Las variables de ideología y edad tienen un efecto negativo sobre la probabilidad de haber votado a EHB.
+
+#Edad:Por cada año que aumenta la edad de una persona, la probabilidad de haber votado a ehb (frente a ERC) disminuye (en un factor) exponencialmente  0.996 ceteris paribus
+#Sexo: Los hombre tienen una probabilidad menor de haber votado a EHB (frentea a ERC) de 1.25 veces mas que en las mujeres ceteris paribus
+#Ideologia: Para cada punto que aumenta la escala ideologica, la probabilidad de votar a EHB(frente a ERC) es 0.514 veces menor. ceteris paribus
+#Estudiosprimarios: Para las personas con estudios primarios frente a los sin estudios, la probailidad de votar a ehb(frente a ERC) es 9.194967e+05 veces mayor, ceteris paribus.
+#EstudiosSecundarios: Para las personas con estudios secundarios frente a los sin estudios, la probailidad de votar a ehb(frente a ERC) es 2.891810e+06 veces mayor, ceteris paribus.
+#EstudiosSuperiores: Para las personas con estudios superiores frente a los sin estudios, la probailidad de votar a ehb(frente a ERC) es 4.708321e+06 veces mayor, ceteris paribus.
+
+#En el caso de tener que comparar todas las variables, tendríamos que dividir las que disminuyen entre 1/la varibale neg
+
+
+#Construimos la formula para los valores predichos
+
+data1 <- with(data, data.frame(ideologia = mean(ideologia), sexo="Hombre" , edad = mean(edad), estudios= c("Sin estudios","Primaria","Secundaria","Superiores")))
+head(data1)
+
+#Nos remite la tabla
+
+data1$probpredichas_ehb<- predict(m.ehb, newdata = data1, type = "response")
+data1[, c(2, 5)]  #le pido que muestre todas las filas de las columnas 2 y 5
+
+#La probabilidad de votar ehb es 2.353546e-09 para un hombre de ideologia 4.54 y de 52 años y sin estudios.
+#La probabilidad de votar ehb es 2.159404e-03 para un hombre de ideologia 4.54 y de 52 años y sin estudios.
+#La probabilidad de votar ehb es 6.759998e-03 para un hombre de ideologia 4.54 y de 52 años y sin estudios.
+#La probabilidad de votar ehb es 1.095980e-02 para un hombre de ideologia 4.54 y de 52 años y sin estudios.
+
+library(rms)
+logit.vif<- vif(m.ehb)
+logit.vif
+#Tenemos problema de multicolinealidad en los estudios están muy por encima de 8.
+
+#install.packages("lmtest")
+library(lmtest)
+
+logit.het<-bptest(m.ehb)
+logit.het
+
+#H0 sería la varianza es constante es decir homocedástica
+#H1 la varianza no es constante es decir heterocedástica. En este caso rechazamos H0 por el pvalor inferior a 0.0001.
+
+#install.packages("margins")
+library(margins)
+
+margins_ehb<- margins(m.ehb)
+summary(margins_ehb)
+
+#AME nos dice la variable independiente con más impacto de promedio
+#En este caso es estudios superiores y secundarios
+#LOWER y UPPER nos sirve para representar gráficamente.
+
+plot(margins_ehb, main="Recuerdo de voto a ehb", col.main="purple", pch=15, las=2, labels=c("edad", "estudiosPrimaria", "estudiosSecundaria", "estudiosSuperiores", "ideologia", "sexoHombre"))
+
+#El cuadro representa el AME y las líneas van desde el máximo al mínimo.
+#La ideología es la única varaible por debajo de 0, la edad esá justo en el 0 y los valores de sexohombre y estuidos primarios tienen su mínimo por debajo de 0
+
+m.erc <- glm(ERC ~ edad + sexo + ideologia + estudios, data = data, family = "binomial")
+summary(m.erc) 
+
+#Según los asterioscos serían significativa edad, ideología, estdios secundarios y superiores
+#Comprobando los p y z valor vemos que el único que podemos rechazar es la ideología.
+
+margins_erc<- margins(m.erc)
+summary(margins_erc)
+
+#Las marginales con más impacto son los estudios superiores, secundarios y primarios
+
+#compara el efecto de una variable independiente sobre ambos modelos
+
+summary(margins_ehb$dydx_estudiosSuperiores)
+
+summary(margins_erc$dydx_estudiosSuperiores)
+
+#Comparar las medias, los máximos y los minimos
+#La media en ERC es el doble que en EHB para los estudios superiores.
+#La mediana en ERC es el triple que en EHB para los estudios superiores
+#El mínimo en ERC también es superior a la EHB y el máximo igual.
+
+### Validación del modelos
+
+summary(data)
+
+set.seed(123) #Forma aleatoria de escoger.
+index <- 1:nrow(data)
+porc_test <- 0.40
+testindex <- sample(index, trunc(length(index)*porc_test))
+train.data <- data[-testindex,]
+test.data <- data[testindex,]
+
+
+clase_real1 <- test.data$EHB
+modelo.1 <- glm(EHB ~ edad + sexo + ideologia + estudios, data = train.data, family = "binomial")
+
+predict1<- predict(modelo.1, newdata=test.data, type="response")
+head(predict1) #la probabilidad predicha para el individuo X que vote al PP es Y.
+
+#install.packages("ROCR")
+library(ROCR)
+
+# Curva ROC representa una curva, en la matriz de confusión puedes predecir una cosa como 0 pero en realidad es 1, 
+#por lo tanto representa una curva en la y estan los true positive y en la x false negative.
+
+#FAlse negative
+#True negative
+#False positive
+#True positivo
+
+pred1<-  prediction(predict1, clase_real1) # crea un objeto "predicción"
+perf1 <- performance(pred1, measure = "tpr", x.measure = "fpr") 
+par(mfrow = c(1,1))
+plot(perf1, lty=1, col="purple", main = "Logit ROC Curve")
+
+# AUC eso el el porcentaje
+auc.m1<- performance(pred1, measure = "auc", x.measure = "fpr") 
+auc.m1@y.values
+
+#Predecimos el 19.97% de los casos con nuestro modelo.
+
+#install.packages("caret")
+library(caret)
+p_class<- ifelse(predict1>0.5, 1, 0)
+p_class <- factor(p_class, levels=c(0,1), labels=c("otros", "EHB"))
+table(p_class)
+
+table(clase_real1)
+confusionMatrix(p_class, clase_real1)
+
+#Se comenta lo siguiente
+#TE saldran 4 numeros, el primer numero corresponde a los true positive predecimos 596 que votaron al pp y en la realidad lo hicieron
+#El segundo los false positive, sale 14 y en nuestro modelo precedicimos 14 casos que votaron al pp y no lo hicieron
+#El tercero de abajo derecha es false negative y sale 6, en nuestro modelo no predecimos 6 casos que en la realidad votaron al pp
+#true negative es el de abajo a¡en la esquina sale 112, en nuestro modelo interpretamos que son 112 que no votaron y en la realidad no lo hicieron
+
+clase_real2 <- test.data$ERC
+modelo.2 <- glm(ERC ~ edad + sexo + ideologia + estudios, data = train.data, family = "binomial")
+
+#install.packages("ROCR")
+library(ROCR)
+
+predict2<- predict(modelo.2, newdata=test.data, type="response")
+head(predict2)
+pred2 <-  prediction(predict2, clase_real2) # crea un objeto "predicción"
+perf2 <- performance(pred2, measure = "tpr", x.measure = "fpr") 
+par(mfrow = c(1,1))
+plot(perf2, lty=1, col="purple", main = "Logit ROC Curve")
+
+# AUC eso el el porcentaje
+auc.m2<- performance(pred2, measure = "auc", x.measure = "fpr") 
+auc.m2@y.values
+#Explicamos el 23.89% del recuerdo de voto a ERC
+
+
+par(mfrow = c(1,1))
+plot(perf1, lty=1, col="green", main = "ROC Curves")
+plot(perf2, lty=1, col="orange", add = TRUE)
+legend(0.4, 0.6,  
+       c("EHB=0.21","ERC=0.25"), 
+       lty = c(1,1),       
+       bty = "n",
+       col=c("green", "orange"),
+       cex = 0.7)
