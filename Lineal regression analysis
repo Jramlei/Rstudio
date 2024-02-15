@@ -1,0 +1,185 @@
+Lineal regression analysis with the CIS poll of January of 2020
+
+library(haven)
+cisenero <- read_sav("3271.sav")
+View(cisenero)
+
+cisenero$val_maspais<- cisenero$ESCIDEOLPAR_7
+cisenero$val_maspais[cisenero$val_maspais>10]<-NA
+summary(cisenero$val_maspais)
+#seleccionamos las variables independientes
+cisenero$edad<- cisenero$EDAD
+cisenero$edad[cisenero$edad>=99]<-NA
+summary(cisenero$edad)
+
+cisenero$SEXO
+cisenero$SEXO[cisenero$SEXO==2]<-0
+cisenero$SEXO[cisenero$SEXO==1]<-1
+cisenero$sexo<- factor(cisenero$SEXO,
+                 levels = c(0,1),
+                 labels = c("mujer","hombre"))
+summary(cisenero$sexo)
+
+cisenero$ideologia<- cisenero$ESCIDEOL
+cisenero$ideologia
+cisenero$ideologia[cisenero$ideologia>10]<-NA
+summary(cisenero$ideologia)
+
+cisenero$es_civil<-cisenero$ESTADOCIVIL
+cisenero$es_civil[cisenero$es_civil==1]<-1
+cisenero$es_civil[cisenero$es_civil==2]<-2
+cisenero$es_civil[cisenero$es_civil==3]<-3
+cisenero$es_civil[cisenero$es_civil==4]<-4
+cisenero$es_civil[cisenero$es_civil==5]<-4
+cisenero$es_civil[cisenero$es_civil>5]<-NA
+
+cisenero$es_civil<- factor(cisenero$es_civil,
+                  levels = c(1,2,3,4),
+                  labels = c("casado","soltero","viudo","separado/divorciado"))
+summary(cisenero$es_civil)
+table(cisenero$es_civil)
+
+cisenero$religion<- cisenero$RELIGION
+cisenero$religion
+
+cisenero$religion[cisenero$religion==1]<-1
+cisenero$religion[cisenero$religion==2]<-1
+cisenero$religion[cisenero$religion==3]<-1
+cisenero$religion[cisenero$religion==4]<-0
+cisenero$religion[cisenero$religion==5]<-0
+cisenero$religion[cisenero$religion==6]<-0
+cisenero$religion[cisenero$religion>6]<-NA
+
+cisenero$religion<- factor(cisenero$religion,
+                  levels = c(0,1),
+                  labels = c("no_creyente","creyente"))
+summary(cisenero$religion)
+
+library(e1071)
+modelo_maspais <- lm(val_maspais ~ edad+sexo+ideologia+es_civil+religion, data=cisenero)  
+summary(modelo_maspais)
+
+modelo_maspais$coefficients
+#Interpretar cada coeficiente:
+#Edad:manteniendo constante todas las variables, si se produce un aumento de una año de edad, la valoración a más país aumenta de media 0.0027
+#Sexo:Manteniendo constante todas las variables, los hombre de media tienen una propensión a valorar 0.066 puntos negativos que las mujeres.
+#ideologia: Manteniendo constante todas las variables,un aumento de un punto en la escala ideológica supondría de media un aumento de -0.20 de valoración a más país.
+#Estado_Civil: Manteniendo constante todas las variables, los solteros tienen de media una propensión de 0.10 de valorar mejor a más país que los casados.
+            #Manteniendo constante todas las variables, los viudos tienen de media una propensión de -0.019 de valorar pero a más país que los casados.
+            #Manteniendo constante todas las variable, los separados/divorciados tienen de media una propensión de 0.128 de valorar positivamente a más país que los casados.
+#Religión: Manteniendo constante todas las variables, los creyentes tienen de media una propensión de -0.256 de valorar negativamente a más país que los no creyentes.
+
+#SIGNIFICATIVIDAD DE LOS RESULTADOS:
+
+#hacer summary y comentar los coeffientes.
+#Teniendo encuenta el pvalor y el tvalor, podemos rechazar con un nivel de confianza del 99.9% la variable ideología.
+#Analizando el p y t valor de la variable religioncreyente, estimamos que los asterioscos se equivocan y no la podemos rechazar
+#Analizando los t y p valor, no podemos rechazar ni la edad, ni el sexo, ni los estado civiles, aunque no son estadísticamente significativa
+
+library(arm)
+coefplot(modelo_maspais, xlim=c(-5, 5),col.pts="blue", intercept=TRUE, main="Coeficientes de la regresión")
+
+#Todas las rectas que crucen por el 0 no son significativas, en este caso divorciado, viudo, soltero, hombre y edad.
+#Por otro lado, creyente sería significativa estadísticamente pero negativa, pasando igual con la ideología, cada punto que aumenta en la escala ideología la val a más país disminuye en un punto
+
+#Relacionamos los datos obtenido con los de otro partido, en este caso el psoe.
+cisenero$val_psoe<- cisenero$ESCIDEOLPAR_1
+cisenero$val_psoe[cisenero$val_psoe>10]<-NA
+summary(cisenero$val_psoe)
+
+#Hacemos una regresión con los datos al psoe
+modelo_psoe<- lm(val_psoe ~ edad+sexo+ideologia+es_civil+religion, data=cisenero)
+summary(modelo_psoe)
+
+coefplot(modelo_psoe, xlim=c(-5, 5),col.pts="blue", intercept=TRUE, main="Coeficientes de la regresión")
+
+#Representamos gráficamente los coeficientes de ambas regresiones (argumento add=T)
+par(mfrow = c(1,1))
+coefplot(modelo_maspais, xlim=c(-5, 5),col.pts="blue", intercept=TRUE, main="Coeficientes")
+coefplot(modelo_psoe, add=TRUE, col.pts="red",  intercept=TRUE, offset=0.2, main="PSOE") 
+#Añadimos leyenda
+legend("topright",  
+       c("Propensión valoración más país","Propensión valoración PSOE"),
+       lty = c(1,1),       
+       col=c("blue","red"),
+       cex = 0.7)
+
+library(lm.beta)
+beta_maspais<-lm.beta(modelo_maspais)
+summary(beta_maspais)
+#Al realizar un análisis para ver la importancia de las variable, observamos que la que más influye a la valoracuón de más país es la ideología.
+#La segunda variable sería la religión creyente.
+
+#Bondad de ajuste, R2 sería 10.66, es decir nuestro modelo explica el 10%. Es bastante parecido al r2 ajustado
+
+#Diagnostico de la regresión
+# 1-Linealidad
+plot(modelo_maspais, 1) #Parece horizontal pero está algo alejada de la línea de punto, por lo tanto no podemos decir que sea lineal.
+
+# 2-Normalidad de los residuos
+plot(modelo_maspais, 2) #Se ajusta en el centro de recta pero no a lo largo de ella, por lo tanto no existe normalidad en los residuos.
+mean(modelo_maspais$residuals) #Al realizar la media podemos ver que está cerca de 0, por lo que puede existir normalidad.
+
+# 3-Homocedasticidad
+library(lmtest)
+het.lm<-bptest(modelo_maspais)
+het.lm
+plot(modelo_maspais, 3)
+#No podriamos rechazar la hipótesis nula con un nivel de confianza del 99.9%. H0 sería que la varianza de los residuos es constante.
+
+# 4- Multicolinealidad
+library(rms)
+reg.lineal.vif <- vif(modelo_maspais)
+reg.lineal.vif #No existe problema de muklticolinealidad ya que todas las variables dan resultados inferiores a 4.
+
+data1 <- data.frame(es_civil= "casado", sexo="mujer", ideologia=7, edad=42, religion="creyente")
+yhat1<-predict(modelo_maspais, newdata = data1)
+yhat1
+#Con todos los valores establecidos y constaste, casado, mujer, con ideología 7, 42 años y creyente, va a tener una propensión de valorar a más país con un 2.31.
+
+data2 <- data.frame(es_civil= "casado", sexo="mujer", ideologia=1, edad=c(20,30,40,50,60,70,80), religion="no_creyente")
+yhat2<-predict(modelo_maspais, newdata = data2)
+yhat2
+
+yhat1<-predict(modelo_maspais, newdata = cisenero, interval = "confidence")
+head(yhat1) #visualizamos los 5 primeros casos
+yhat1<-predict(modelo_maspais, newdata = cisenero, interval = "confidence", na.action=na.exclude)
+head(yhat1)
+
+yhat1<-predict(modelo_maspais, newdata = cisenero, interval = "confidence", na.action=na.exclude, level=0.99)
+head(yhat1)
+
+#install.packages("jtools")
+#install.packages("ggstance")
+#install.packages("huxtable")
+library(jtools)
+library(ggstance)
+library(huxtable)
+
+summ(modelo_maspais)
+library(tidyverse)
+library(datos)
+
+myvars <-c("val_maspais", "edad", "sexo", "ideologia", "es_civil", "religion")  
+cisenero_red <- cisenero[myvars]
+cisenero_red<- na.omit(cisenero_red)
+
+modelo1 <- lm(val_maspais ~ ideologia, cisenero_red) 
+modelo2 <- lm(val_maspais ~ ideologia+sexo+es_civil, data=cisenero_red)  
+modelo3 <- lm(val_maspais ~ ideologia+sexo+es_civil+edad+religion, data=cisenero_red)  
+
+library(stargazer)
+stargazer(modelo1, modelo2, modelo3,    
+          type="text",
+          dep.var.labels=c("M1", "M2", "M3"),
+          covariate.labels=c("Ideología", "Sexo", "Estado civil", "Edad", "Religion", "Casado", "Soltero", "Viudo", "Separado", "Divorciado"))
+
+AIC(modelo1, modelo2, modelo3)
+BIC(modelo1, modelo2, modelo3)
+
+#'nos fijamos en el menor valor'
+#'en nuestro caso el más pequeño es modelo 3
+#y para el BIC sería el modelo 1'
+#'es decir, según el AIC lo mejor serían todas las palabras y según el BIC
+#lo mejor sería sólo la ideología'. 'tiene lógica porque la única que nos 
+#ha salido antes significativa era la ideologia'
