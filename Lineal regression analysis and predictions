@@ -1,0 +1,381 @@
+Lineal regression analysis and predictions with the CIS poll
+
+library(haven)
+cisenero <- read_sav("3271.sav")
+#View(cisenero)
+
+cisenero$RECUVOTOGR
+table(cisenero$RECUVOTOGR)
+
+cisenero$voto_pp<- cisenero$RECUVOTOGR
+cisenero$voto_pp[cisenero$voto_pp>1 & cisenero$voto_pp<=68]<-0
+cisenero$voto_pp[cisenero$voto_pp==1]<-1
+cisenero$voto_pp[cisenero$voto_pp==95]<-0
+cisenero$voto_pp[cisenero$voto_pp==96]<-0
+cisenero$voto_pp[cisenero$voto_pp>68]<-NA
+table(cisenero$voto_pp)
+cisenero$voto_pp<- factor(cisenero$voto_pp,
+                          levels = c(0,1),
+                          labels = c("Otros","PP"))
+table(cisenero$voto_pp)
+
+cisenero$voto_psoe<- cisenero$RECUVOTOGR
+cisenero$voto_psoe[cisenero$voto_psoe>2 & cisenero$voto_psoe<=68]<-0
+cisenero$voto_psoe[cisenero$voto_psoe==1]<-0
+cisenero$voto_psoe[cisenero$voto_psoe==2]<-1
+cisenero$voto_psoe[cisenero$voto_psoe==95]<-0
+cisenero$voto_psoe[cisenero$voto_psoe==96]<-0
+cisenero$voto_psoe[cisenero$voto_psoe>68]<-NA
+table(cisenero$voto_psoe)
+cisenero$voto_psoe<- factor(cisenero$voto_psoe,
+                          levels = c(0,1),
+                          labels = c("Otros","PSOE"))
+table(cisenero$voto_psoe)
+
+cisenero$voto_cs<- cisenero$RECUVOTOGR
+cisenero$voto_cs[cisenero$voto_cs>4 & cisenero$voto_cs<=68]<-0
+cisenero$voto_cs[cisenero$voto_cs<4]<-0
+cisenero$voto_cs[cisenero$voto_cs==4]<-1
+cisenero$voto_cs[cisenero$voto_cs==95]<-0
+cisenero$voto_cs[cisenero$voto_cs==96]<-0
+cisenero$voto_cs[cisenero$voto_cs>68]<-NA
+table(cisenero$voto_cs)
+cisenero$voto_cs<- factor(cisenero$voto_cs,
+                            levels = c(0,1),
+                            labels = c("Otros","CS"))
+table(cisenero$voto_cs)
+
+cisenero$voto_up<- cisenero$RECUVOTOGR
+cisenero$voto_up[cisenero$voto_up>21 & cisenero$voto_up<=68]<-0
+cisenero$voto_up[cisenero$voto_up<21]<-0
+cisenero$voto_up[cisenero$voto_up==21]<-1
+cisenero$voto_up[cisenero$voto_up==95]<-0
+cisenero$voto_up[cisenero$voto_up==96]<-0
+cisenero$voto_up[cisenero$voto_up>68]<-NA
+table(cisenero$voto_up)
+cisenero$voto_up<- factor(cisenero$voto_up,
+                          levels = c(0,1),
+                          labels = c("Otros","UP"))
+table(cisenero$voto_up)
+
+cisenero$voto_vox<- cisenero$RECUVOTOGR
+cisenero$voto_vox[cisenero$voto_vox>18 & cisenero$voto_vox<=68]<-0
+cisenero$voto_vox[cisenero$voto_vox<18]<-0
+cisenero$voto_vox[cisenero$voto_vox==18]<-1
+cisenero$voto_vox[cisenero$voto_vox==95]<-0
+cisenero$voto_vox[cisenero$voto_vox==96]<-0
+cisenero$voto_vox[cisenero$voto_vox>68]<-NA
+table(cisenero$voto_vox)
+cisenero$voto_vox<- factor(cisenero$voto_vox,
+                          levels = c(0,1),
+                          labels = c("Otros","VOX"))
+table(cisenero$voto_vox)
+
+#edad, sexo, ideología, cercanía
+
+cisenero$edad<- cisenero$EDAD
+summary(cisenero$edad)
+cisenero$edad[cisenero$edad==99]<-NA
+
+cisenero$sexo<- cisenero$SEXO
+summary(cisenero$sexo)
+cisenero$sexo[cisenero$sexo==1]<-1
+cisenero$sexo[cisenero$sexo==2]<-0
+cisenero$sexo<- factor(cisenero$sexo,
+                       levels = c(0,1),
+                       labels = c("Mujer","Hombre"))
+table(cisenero$sexo)
+
+cisenero$ideologia<- cisenero$ESCIDEOL
+cisenero$ideologia[cisenero$ideologia>10]<-NA
+table(cisenero$ideologia)
+
+cisenero$afinidad<- cisenero$CERCANIA
+cisenero$afinidad[cisenero$afinidad==1]<-1
+cisenero$afinidad[cisenero$afinidad==2]<-2
+cisenero$afinidad[cisenero$afinidad==3]<-3
+cisenero$afinidad[cisenero$afinidad==4]<-4
+cisenero$afinidad[cisenero$afinidad>4 & cisenero$afinidad<18]<-6
+cisenero$afinidad[cisenero$afinidad==18]<-5
+cisenero$afinidad[cisenero$afinidad>18 & cisenero$afinidad<=95]<-6
+cisenero$afinidad[cisenero$afinidad>95]<-NA
+
+cisenero$afinidad<- factor(cisenero$afinidad,
+                           levels = c(1,2,3,4,5,6),
+                           labels = c("PP","PSOE","UP","CS","VOX","OTROS"))
+table(cisenero$afinidad)
+## Creamos un data frame con nuestras variables y en el mismo orden
+myvars <- c("voto_pp", "voto_psoe", "voto_cs", "voto_up", "voto_vox", "edad", "sexo", "ideologia", "afinidad")  
+data<-as.data.frame(cisenero[myvars])
+data<- na.omit(data)
+dim(data)
+summary(data)
+
+library(MASS)
+m.cs <- glm(voto_cs ~ edad + sexo + ideologia + afinidad, data = data, family = "binomial")
+summary(m.cs)
+##Explicar las que son significativas y cuales no. Podemos rechazar las significativas, las del *,**,***.
+## Poner las hipótesis, H0 la variable independciente no tiene relacción sobre la dependiente.
+##H1, la variable independiente si tiene relación sobre la dependiente 
+##Solo en la que es significativa podemos rechazar la hipotesis nula, z y o valor por encima de0.05 e inferior a 1.96
+
+confint(m.cs)#no sirve de nada
+
+coef(m.cs)
+#Edad: por cada año que aumenta la edad de una persona, el log de la probabilidad de votar a Cs (vs otros partidos) disminuye en 0.014 ceteris paribus
+#Sexo: los hombres tienen un log de probabilidad de votar a Cs menor (frente a las mujeres) de 0.52 ceteris paribus
+#Ideología:  Para cada punto que aumenta la ideología, el log de la probabilidad de votar a Cs (versus votar otro partido) disminuye en 0,05 ceteris paribus
+#Afinidad_PSOE: Para las personas que en se sienten más cercanas al PSOE en enero, el logaritmo de la probabilidad de votar a Cs es 1,30 puntos menor que entre los que se sienten más cercanos al PP.ceteris paribus
+#Afinidad_UP: Para las personas que en se sienten más cercanas a Unidas podemos en enero, el logaritmo de la probabilidad de votar a Cs es 15.76 puntos menor que entre los que se sienten más cercanos al PP.ceteris paribus
+#Afinidad_Cs:Para las personas que en se sienten más cercanas a Cs en enero, el logaritmo de la probabilidad de votar a Cs es 4.72 puntos mayor que entre los que se sienten más cercanos al PP.ceteris paribus
+#Afinidad_VOX: Para las personas que en se sienten más cercanas a VOX en enero, el logaritmo de la probabilidad de votar a Cs es 0.02 puntos menor que entre los que se sienten más cercanos al PP.ceteris paribus
+#Afinidad_OTROS: Para las personas que en se sienten más cercanas a Otros partidos en enero, el logaritmo de la probabilidad de votar a Cs es 2.18 puntos menor que entre los que se sienten más cercanos al PP.ceteris paribus
+
+exp(coef(m.cs))
+#Solo afinidad ciudadanos tiene un efecto positivo de un recuerdo de haber votado a Cs.
+#El resto de variables tiene un efecto negativo al ser inferior a 1
+#Para comparar entre valores por debajo de 1: dividmos 1/el valor de la variable
+#Edad:Por cada año que aumenta la edad de una persona, la probabilidad de haber votado a cs (frente a otro partido) disminuye (en un factor) exponencialmente  0.98 ceteris paribus
+#Sexo: Los hombre tienen una probabilidad menor de haber votado a Cs (frentea a otros partidos) de 0.589 veces menor que en las mujeres ceteris paribus
+#Ideologia: Para cada punto que aumenta la escala ideologica, la probabilidad de votar a Cs(frente a otros partidos) es 0.271 veces menor. ceteris paribus
+#Afinidad_Psoe: Para las personas que se sienten más cercanas al Psoe, la probailidad de votar a CS es 0.271 veces menor que los que se sienten más cercanos al PP, ceteris paribus
+
+
+exp(cbind(OR = coef(m.cs), confint(m.cs)))
+#COnstruimos la formula para los valores predichos
+data1 <- with(data, data.frame(ideologia = mean(ideologia), sexo="Hombre" , edad = mean(edad), afinidad= c("PP","PSOE","CS","UP","VOX","OTROS")))
+head(data1)
+#Nos remite la tabla
+
+data1$probpredichas_Cs<- predict(m.cs, newdata = data1, type = "response")
+data1[, c(2, 5)]  #le pido que muestre todas las filas de las columnas 2 y 5
+
+#La probabilidad de votar cs 0.0133 siendo hombre de ideologia 4.54 y de 51 años, para los que se siente cercanos al PP
+#La probabilidad de votar cs 0.00365 siendo hombre de ideologia 4.54 y de 51 años, para los que se siente cercanos al PSOE
+#La probabilidad de votar cs 0.603 siendo hombre de ideologia 4.54 y de 51 años, para los que se siente cercanos al CS
+#La probabilidad de votar cs 0.000000009 siendo hombre de ideologia 4.54 y de 51 años, para los que se siente cercanos al UP
+#La probabilidad de votar cs 0.0129 siendo hombre de ideologia 4.54 y de 51 años, para los que se siente cercanos al VOX
+#La probabilidad de votar cs 0.00152 siendo hombre de ideologia 4.54 y de 51 años, para los que se siente cercanos al PP.
+
+#install.packages("rms")
+library(rms)
+logit.vif<- vif(m.cs)
+logit.vif
+#No tenemos problemas dde multicolinealidad al estar todos los valores por debajo de 4.
+
+#install.packages("lmtest")
+library(lmtest)
+logit.het<-bptest(m.cs)
+logit.het
+#H0 sería la varianza es constante es decir homocedástica
+#H1 la varianza no es constante es decir heterocedástica. En este caso rechazamos H0 por el pvalor inferior a 0.0001.
+
+#install.packages("margins")
+library(margins)
+margins_cs<- margins(m.cs)
+summary(margins_cs)
+
+#AME nos dice la variable independiente con más impacto de promedio
+#En este caso es AFINIDAD con Cs y después muy de lejos la de podemos.
+#LOWER y UPPER nos sirve para representar gráficamente.
+
+plot(margins_cs, main="Recuerdo de voto a C's", col.main="purple", pch=15, las=2, labels=c("afinidadCS", "afinidadaOTROS", "AfinidadPSOE", "afinidadUP", "afinidadVOX", "edad", "ideologia", "sexoHombre"))
+#El cuadro representa el AME y las líneas van desde el máximo al mínimo.
+
+m.vox <- glm(voto_vox ~ edad + sexo + ideologia + afinidad, data = data, family = "binomial")
+summary(m.vox) #No es necesario comentar nada a no ser que nos lo pidan
+
+margins_vox<- margins(m.vox)
+summary(margins_vox)
+#Las marginales con más impacto son la afinidad a VOX, seguida de CS y Hombre.
+
+#compara el efecto de una variable independiente sobre ambos modelos
+summary(margins_cs$dydx_afinidadPSOE)
+summary(margins_vox$dydx_afinidadPSOE)
+#Comparar las medias, los máximos y los minimos
+
+
+
+### Validación del modelos
+
+summary(data)
+
+set.seed(123) #Forma aleatoria de escoger.
+index <- 1:nrow(data)
+porc_test <- 0.40
+testindex <- sample(index, trunc(length(index)*porc_test))
+train.data <- data[-testindex,]
+test.data <- data[testindex,]
+
+
+clase_real1 <- test.data$voto_pp
+modelo.1 <- glm(voto_pp ~ edad + sexo + ideologia + afinidad, data = data, family = "binomial")
+
+predict1<- predict(modelo.1, newdata=test.data, type="response")
+head(predict1) #la probabilidad predicha para el individuo X que vote al PP es Y.
+
+#install.packages("ROCR")
+library(ROCR)
+# Curva ROC representa una curva, en la matriz de confusión puedes predecir una cosa como 0 pero en realidad es 1, 
+#por lo tanto representa una curva en la y estan los true positive y en la x false negative.
+
+#FAlse negative
+#True negative
+#False positive
+#True positivo
+
+pred1 <-  prediction(predict1, clase_real1) # crea un objeto "predicción"
+perf1 <- performance(pred1, measure = "tpr", x.measure = "fpr") 
+par(mfrow = c(1,1))
+plot(perf1, lty=1, col="purple", main = "Logit ROC Curve")
+
+# AUC eso el el porcentaje
+auc.m1<- performance(pred1, measure = "auc", x.measure = "fpr") 
+auc.m1@y.values
+
+#Predecimos el 98% de los casos con nuestro modelo.
+
+update.packages("caret")
+library(caret)
+p_class<- ifelse(predict1>0.5, 1, 0)
+p_class <- factor(p_class, levels=c(0,1), labels=c("otros", "voto_pp"))
+table(p_class)
+
+table(clase_real1)
+confusionMatrix(p_class, clase_real1)
+#Se comenta lo siguiente
+#TE saldran 4 numeros, el primer numero corresponde a los true positive predecimos 596 que votaron al pp y en la realidad lo hicieron
+#El segundo los false positive, sale 14 y en nuestro modelo precedicimos 14 casos que votaron al pp y no lo hicieron
+#El tercero de abajo derecha es false negative y sale 6, en nuestro modelo no predecimos 6 casos que en la realidad votaron al pp
+#true negative es el de abajo a¡en la esquina sale 112, en nuestro modelo interpretamos que son 112 que no votaron y en la realidad no lo hicieron
+
+clase_real2 <- test.data$voto_psoe
+modelo.2 <- glm(voto_psoe ~ edad + sexo + ideologia + afinidad, data = data, family = "binomial")
+#install.packages("ROCR")
+library(ROCR)
+predict2<- predict(modelo.2, newdata=test.data, type="response")
+head(predict2)
+pred2 <-  prediction(predict2, clase_real2) # crea un objeto "predicción"
+perf2 <- performance(pred2, measure = "tpr", x.measure = "fpr") 
+par(mfrow = c(1,1))
+plot(perf2, lty=1, col="purple", main = "Logit ROC Curve")
+
+# AUC eso el el porcentaje
+auc.m2<- performance(pred2, measure = "auc", x.measure = "fpr") 
+auc.m2@y.values
+
+clase_real3 <- test.data$voto_cs
+modelo.3 <- glm(voto_cs ~ edad + sexo + ideologia + afinidad, data = data, family = "binomial")
+#install.packages("ROCR")
+#library(ROCR)
+predict3<- predict(modelo.3, newdata=test.data, type="response")
+head(predict3)
+pred3 <-  prediction(predict3, clase_real3) # crea un objeto "predicción"
+perf3 <- performance(pred3, measure = "tpr", x.measure = "fpr") 
+par(mfrow = c(1,1))
+plot(perf3, lty=1, col="purple", main = "Logit ROC Curve")
+
+# AUC eso el el porcentaje
+auc.m3<- performance(pred3, measure = "auc", x.measure = "fpr") 
+auc.m3@y.values
+#Los datos predicen bien el 1.67
+
+clase_real4 <- test.data$voto_up
+modelo.4 <- glm(voto_up ~ edad + sexo + ideologia + afinidad, data = data, family = "binomial")
+
+predict4<- predict(modelo.4, newdata=test.data, type="response")
+head(predict3)
+pred4 <-  prediction(predict4, clase_real4) # crea un objeto "predicción"
+perf4 <- performance(pred4, measure = "tpr", x.measure = "fpr") 
+par(mfrow = c(1,1))
+plot(perf4, lty=1, col="purple", main = "Logit ROC Curve")
+
+# AUC eso el el porcentaje
+auc.m4<- performance(pred4, measure = "auc", x.measure = "fpr") 
+auc.m4@y.values
+#El modelo para el voto de podemos predice le 91.95% del recuerdo de voto a podemos
+
+clase_real5 <- test.data$voto_vox
+modelo.5 <- glm(voto_vox ~ edad + sexo + ideologia + afinidad, data = data, family = "binomial")
+
+predict5<- predict(modelo.5, newdata=test.data, type="response")
+head(predict5)
+pred5 <-  prediction(predict5, clase_real5) # crea un objeto "predicción"
+perf5 <- performance(pred5, measure = "tpr", x.measure = "fpr") 
+par(mfrow = c(1,1))
+plot(perf5, lty=1, col="purple", main = "Logit ROC Curve")
+
+# AUC eso el el porcentaje
+auc.m5<- performance(pred5, measure = "auc", x.measure = "fpr") 
+auc.m5@y.values
+
+#Nuestro modelo explica el 98.30% del recuerdo de voto a VOX
+
+par(mfrow = c(1,1))
+plot(perf1, lty=1, col="blue", main = "ROC Curves")
+plot(perf2, lty=1, col="red", add = TRUE)
+plot(perf3, lty=1, col="orange", add = TRUE)
+plot(perf4, lty=1, col="purple", add = TRUE)
+plot(perf5, lty=1, col="green", add = TRUE)
+legend(0.4, 0.6,  
+       c("PP=0.98","PSOE=0.95","Cs=0.16","Podemos=0.91", "VOX=0.98"), 
+       lty = c(1,1,1,1),       
+       bty = "n",
+       col=c("blue", "red","orange","purple","green"),
+       cex = 0.7)
+#El partido con el porcentaje más bajo es Cs, nuestro modelo explica el 1.6%, 
+# seguido de podemos con el 91% y de PSOE con el 95%
+
+# Clase Real 
+clase_real1a <- test.data$voto_pp #y_test
+
+# Modelo
+modelo.1a <- glm(voto_pp ~ sexo + edad + afinidad, data = train.data, family = "binomial")
+
+# Predicción
+predict1a<- predict(modelo.1a, newdata=test.data, type="response")
+
+# ROC
+pred1a <-  prediction(predict1a, clase_real1a)
+perf1a<- performance(pred1a, measure = "tpr", x.measure = "fpr") 
+par(mfrow = c(1,1))
+plot(perf1a, lty=2, col="blue", main = "Logit ROC Curve")
+
+# AUC
+auc.m1a <- performance(pred1a, measure = "auc", x.measure = "fpr") 
+auc.m1a@y.values
+#Nuestro modelo explica el 97% del recuerdo a voto al pp sin la variable ideología
+
+par(mfrow = c(1,1))
+plot(perf1, lty=1, col="blue", main = "ROC Curves")
+plot(perf1a, lty=2, col="red", add = TRUE)
+
+legend(0.4, 0.6,  
+       c("PP=0.98", "Podemos(ideología)=0.97"), 
+       lty = c(1,2),       
+       bty = "n",
+       col=c("blue", "blue"),
+       cex = 0.7)
+#Se reduce el modelo sin ideologia de una décima, pero el cambio es muy pequeño y nos daría igual para el voto al PP
+
+# Categorizamos la variable Tenemos que coger el modelo que da el peor resultado
+data$ideol_cat<-data$ideologia
+data$ideol_cat[data$ideol_cat<4]<-1
+data$ideol_cat[data$ideol_cat>=4 & data$ideologia<=6]<-2
+data$ideol_cat[data$ideol_cat>6]<-3
+data$ideol_cat<-as.factor(data$ideol_cat)
+table(data$ideol_cat)
+#La cercania a Cs es el único valor significativo. Cuanta más variable ssignificativas mejor.
+# Estimamos el modelo
+modelo.2a <- glm(voto_cs ~ ideol_cat + sexo + edad + afinidad, data = data, family = "binomial")
+summary(modelo.2a) 
+
+# Calculamos la variable al cuadrado
+data$ideol2<-(data$ideologia)^2
+
+# Estimamos el modelo
+modelo.2b <- glm(voto_cs ~ ideologia + ideol2 + afinidad + sexo  + edad, data = data, family = "binomial")
+summary(modelo.2b)
+
+#El efecto cuadrático solo muestra la significación con la afinidad de CS
+#Se puede ver la redución del AIC, cuanto más bajo mejor.
