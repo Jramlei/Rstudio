@@ -1,0 +1,294 @@
+---
+title: "Práctica evaluada II: Regresión Lineal"
+author: "Francisco Javier Ramírez Leiva" 
+date: "25 de Noviembre, 2020"
+output:
+  html_document:
+    theme: cerulean
+    highligh: haddock
+    toc: yes
+---
+
+<style>
+body {
+text-align: justify}
+</style> 
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+\
+\
+\
+
+##### Características del ejercicio
+**Entregable:** 
+El ejercicio se entregará a través de Aula Global. Se admitirán los siguientes tipos de ficheros:
+
+* .Rmd ejecutable y comentado + HTLM 
+* .Rmd ejecutable y comentado (-0.5 puntos)
+  
+**Duración máxima**: 2h 20min 
+
+**Puntación máxima**: El ejercicio supone un 25% de la nota final de la asignatura
+
+**Realización**:Usando el dataset adjunto resuelve los ejercicios que se proponen a continuación:
+
+*     Evita usar código redundante
+*     Las explicaciones breves pero exhaustivas, razonando tus decisiones cuando el ejercicio lo requiera. 
+*     Puedes usar tus apuntes, libros e incluso consultar información en internet. 
+*     No está permitido comunicarse con terceros durante el exámen por ningún medio (e-mail, teléfono, etc)
+
+\
+\
+\
+__¡Suerte!__
+
+\
+\
+\
+
+##### 1.    En la carpeta MD3259 encontrarás toda la información (microdatos, cuestionario, etc) relativa al Estudio 3259 sobre "Opinión Pública y Política Fiscal", llevada a cabo por el CIS en septiembre de 2019. Abre el dataset **X3259.sav** y crea data.frame llamado **data** (0.25 puntos)
+
+```{r message=FALSE, warning=FALSE}
+library(haven)
+data <- read_sav("3259.sav")
+View(data)
+
+```
+
+
+##### 2.    Consulta las dimensiones del data.frame (0.25 puntos)
+```{r message=FALSE, warning=FALSE}
+dim(data)
+```
+
+
+2.1. ¿Cuántas variables contiene? 
+Encontramos 173 variables.
+
+2.2. ¿Cuántos individuos han sido encuestados?
+Han sido encuestados 2464 individuos.
+
+##### 3.    Recodifica, renombra y/o etiqueta las categorías de las variables como se indica a continuación. No olvides eliminar los casos perdidos cuando sea necesario. Haz un table/summary para comprobar que la variable está bien definida y responder a las preguntas que se plantean. Recuerda que puedes usar el cuestionario si lo necesitas (2 puntos)
+
+**3.1. P9 --> bajar_impuestos**
+(Nota: ponemos como etiqueta bajar_impuestos porque la variable va de pagar mas impuestos (0) a pagar menos impuestos (10)
+
+```{r message=FALSE, warning=FALSE}
+
+data$bajar_impuestos<- data$P9
+data$bajar_impuestos[data$bajar_impuestos>10]<- NA
+summary(data$bajar_impuestos)
+table(data$bajar_impuestos)
+
+```
+
+**3.2. P13 -->impuestos_EU **
+
+   +  1 -> Mas impuestos
+   +  2 -> Igual de impuestos
+   +  3 -> Menos impuestos
+   
+```{r message=FALSE, warning=FALSE}
+
+data$impuestos_EU<- data$P13
+data$impuestos_EU[data$impuestos_EU>3]<-NA
+
+data$impuestos_EU<- factor(data$impuestos_EU,
+                           levels = c(1,2,3),
+                           labels = c("Mas impuestos", "Igual de impuestos", "Menos impuestos"))
+table(data$impuestos_EU)
+
+```
+
+
+**3.3. P6_2 -> satis_sanidad**
+
+   + 1, 2 --> 1 Etiqueta: "Bastante o muy satisfecho"
+   + 3, 4 --> 0 Etiqueta: "Poco o nada satisfecho"
+
+```{r message=FALSE, warning=FALSE}
+
+data$satis_sanidad<- data$P6_2
+data$satis_sanidad[data$satis_sanidad==1]<-1
+data$satis_sanidad[data$satis_sanidad==2]<-1
+data$satis_sanidad[data$satis_sanidad==3]<-0
+data$satis_sanidad[data$satis_sanidad==4]<-0
+data$satis_sanidad<- factor(data$satis_sanidad,
+                            levels = c(0,1),
+                            labels = c("Poco o nada satisfecho","Bastante o muy satisfecho"))
+summary(data$satis_sanidad)
+```
+
+
+**3.4. P32 --> ideol** 
+
+```{r message=FALSE, warning=FALSE}
+
+data$ideol<- data$P32
+data$ideol[data$ideol>10]<-NA
+summary(data$ideol)
+```
+
+**3.5. P34--> hombre**
+
+   * 1 --> 1 Etiqueta: hombre
+   * 2 --> 0 Etiqueta: mujer
+   
+```{r message=FALSE, warning=FALSE}
+
+data$hombre<- data$P34
+data$hombre[data$hombre==1]<-1
+data$hombre[data$hombre==2]<-0
+data$hombre<- factor(data$hombre,
+                     levels = c(0,1),
+                     labels = c("mujer","hombre"))
+summary(data$hombre)
+```
+
+**3.6. P50 <- clase**
+
+   *  1,2 -> 1   Etiqueta: "Clase alta/media alta"
+   *  3 -> 2   Etiqueta: "Clase media"
+   *  4,5 -> 3   Etiqueta: "Clase baja/media baja"
+
+```{r message=FALSE, warning=FALSE}
+
+data$clase<- data$P50
+data$clase[data$clase==1]<-1
+data$clase[data$clase==2]<-1
+data$clase[data$clase==3]<-2
+data$clase[data$clase==4]<-3
+data$clase[data$clase==5]<-3
+data$clase[data$clase>5]<-NA
+data$clase<- factor(data$clase,
+                    levels = c(1,2,3),
+                    labels = c("Clase alta/media alta","Clase media","Clase baja/media baja"))
+table(data$clase)
+```
+
+
+**3.7. P35 -> edad**
+
+```{r message=FALSE, warning=FALSE}
+
+data$edad<- data$P35
+data$edad[data$edad>=99]<-NA
+summary(data$edad)
+
+```
+
+
+##### 4.    Una vez preparadas las variables, responde a las siguientes preguntas (0.5 puntos)
+
+1.    ¿Cuál es la media de la variable bajar_impuestos? la media es 4.046206
+2.    ¿Cuántas personas creen que en España se pagan más impuestos que en la UE? 713 personas creen que en España se paga más impuestos que en EU
+3.    ¿Cuántas personas están muy satisfechas o bastante satisfechas con la sanidad pública? 1456 personas estan muy satisfechas o bastante satisfechas con la sanidad pública
+4.    ¿Cuál es la media de ideología en la muestra? La media es  4.574 
+5.    ¿Cuántos hombres hay en la muestra? En la muestra tenemos 1190 hombres
+6.    ¿Cuántas personas de clase baja hay en la muestra? Tenemos 175 de clase baja y 852 de clase media baja/baja
+7.    ¿Cuál es la media de edad de la población encuestada? La edad media es 50.62 años
+
+
+##### 5.    Representa con un gráfico la distribución de la VD: bajar_impuesto. Comenta el resultado.  (0.5 puntos)
+
+```{r message=FALSE, warning=FALSE}
+library(ggplot2)
+ggplot(data, aes(data$bajar_impuestos)) + geom_density(fill = "blue", alpha=0.8) 
+```
+En el gráfico se muestra comola mediana se sitúa en los 5 puntos, vemos que no tiene una distribiución simétrica, la mayoría de los encuestasdos se encuentran entre el 0 y el 6 puntos. recordemos que la gráfica va de aquellos que quieren pagar más y mejorar los servicios públicos a los que menos y la mayor tasa de respuesta se localiza entorno a los 5 puntos.
+
+##### 6.    Calcula el modelo de regresión **reg1** que estima el nivel de confianza en el bajar impuestos en función del resto de variables. Muestra los resultados (0.5 puntos)
+
+```{r message=FALSE, warning=FALSE}
+library(e1071)
+reg1 <- lm(bajar_impuestos ~ impuestos_EU+satis_sanidad+ideol+hombre+clase+edad, data=data)  
+summary(reg1)
+```
+
+##### 7.    ¿Qué variables son estadísticamente significativas? Justifica tu respuesta (0.5 puntos)
+Las variables estadisticamente significativas según los astericos indicados en el modelos son: al 99.9% serían impuestos_EU_menos y la variable ideología. Al 99% satis_sanidad bastante o muy satisfecho y al 95.5% clase media y clase mediabaja/baja.
+
+##### 8.    Interpreta los coeficientes de las siguientes variables, independientemente de su significatividad. Recuerda que la variable dependiente va de mas (0) a menos impuestos (10) (1 punto)
+```{r}
+reg1$coefficients
+```
+
+   
+   * **Satisfacción con la sanidad**:Manteniendo todas las variables constantes, si se produce un aumento de una unidad en la satisfacción con la sanidad, el pagar más impuesto aumenta de media en 0.38 puntos en los que perciben la sanidad bastante o muy staisfecho que en los que la perciben como mala. 
+   * **Ideología**:Manteniendo constante todas las variables,un aumento de un punto en la escala ideológica supondría de media un aumento de 0.19 puntos en pagar menos impuestos.
+   * **Clase baja/media baja**: Manteniendo constante todas las variables,un aumento de un punto en la calificación de clases supondría de media un aumento de 0.67 puntos en pagar más impuesto que las clase alta.
+   
+
+##### 9.    Representa gráficamente los coeficientes (0.5 puntos)
+
+```{r message=FALSE, warning=FALSE}
+library(arm)
+coefplot(reg1, xlim=c(-5, 5),col.pts="blue", intercept=TRUE, main="Coeficientes de la regresión")
+
+```
+Responde a las siguientes preguntas:
+
+*  ¿Qué significa que las bandas de confianza de un coeficiente crucen la línea del 0? Significa que las variables no son significativas estadisticamente para el modelo, en este caso serían la edad, el sexo e igual de impuesto, con la duda de clase media que tendría que analizarse con un test.
+
+*  ¿Qué significa que un coeficiente esté a la derecha del 0? cuando se encuentra a la derecha del 0 podemos decir que valoran positivamente pagar más impuestos y mejorar los servicios públicos
+
+
+##### 10.      ¿Qué variable es la más importante en el modelo? En otras palabras, ¿cuál de las variables independiente contribuye más a explicar la variable dependiente? Justifica tu respuesta (0.5 puntos)
+
+```{r message=FALSE, warning=FALSE}
+library(lm.beta)
+betareg1<-lm.beta(reg1)
+summary(betareg1)
+
+```
+La variable más importante es Ideología con un valor standarizado de 0.16, seguida de Creer que en España se paga menos impuestos que en EU con un valor standarizado de 0.15
+
+
+##### 11.      ¿Cuál es la bondad de ajuste del modelo en su conjunto? Justifica tu respuesta (0.5 puntos)
+La bondad de ajuste del modelo es de 6.94 puntos, es decir, nuestro modelos solo explica un total de 6.94 puntos. Lo vemos analizando el valor de R2. Resaltar que el valor de R2 y de R2ajustado es muy parecido.
+
+
+##### 12.      Haz un test y comprueba si la regresión tiene problemas de multicolinealidad. Explica los resultados (0.5 puntos)
+```{r message=FALSE, warning=FALSE}
+library(rms)
+reg.lineal.vif <- vif(reg1)
+reg.lineal.vif
+
+```
+No aprecio problemas de multicolionealidad ya que el valor que nos sale de todas las variables es menor a 4.
+
+##### 13.      Haz un test para comprar si existen problemas de heterocedasticidad. Explica los resultados (0.5 puntos)
+```{r message=FALSE, warning=FALSE}
+library(lmtest)
+het.lm<-bptest(reg1)
+het.lm
+
+```
+Tenemos que H0: a que varianza de los residuos es constante (homocedasticidad) o H1: las varianza de los residuos no son constantes (heterocedástica). Como el p valor es mayor que 0.05, no podemos rechazar H0, por lo muestra que es homocedástica.
+
+##### 14.      A continuación, examina cómo de bueno (o malo) es el modelo prediciendo (2 puntos)
+14.1.En primer lugar, genera los siguientes data.frames 
+
+  * train.data: **70%**
+  * test.data: **30%** 
+
+```{r message=FALSE, warning=FALSE}
+myvars <- c("bajar_impuestos", "impuestos_EU", "satis_sanidad", "ideol", "hombre", "clase", "edad")  
+data_red<-data[myvars]
+data_red<- na.omit(data_red)
+
+library(caret)
+sample_size <- floor(0.70 * nrow(data_red))
+set.seed(1)
+train_ind <- sample(seq_len(nrow(data_red)), size = sample_size)
+train.data <- data_red[train_ind, ]
+test.data <- data_red[-train_ind, ]
+```
+
+14.2. En segundo lugar, calcula la tasa predicción de nuestro modelo? Explica **paso a paso** el proceso que has seguido y los resultados obtenidos.
+
+```{r message=FALSE, warning=FALSE}
+
+```
