@@ -7,7 +7,9 @@ View(cisenero)
 cisenero$val_maspais<- cisenero$ESCIDEOLPAR_7
 cisenero$val_maspais[cisenero$val_maspais>10]<-NA
 summary(cisenero$val_maspais)
+
 #seleccionamos las variables independientes
+
 cisenero$edad<- cisenero$EDAD
 cisenero$edad[cisenero$edad>=99]<-NA
 summary(cisenero$edad)
@@ -71,7 +73,7 @@ modelo_maspais$coefficients
 
 #SIGNIFICATIVIDAD DE LOS RESULTADOS:
 
-#hacer summary y comentar los coeffientes.
+#hacer summary y comentar los coefientes.
 #Teniendo encuenta el pvalor y el tvalor, podemos rechazar con un nivel de confianza del 99.9% la variable ideología.
 #Analizando el p y t valor de la variable religioncreyente, estimamos que los asterioscos se equivocan y no la podemos rechazar
 #Analizando los t y p valor, no podemos rechazar ni la edad, ni el sexo, ni los estado civiles, aunque no son estadísticamente significativa
